@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>TinyApp</title>
+</head>
+<body>
+  <header>
+    <% include ./partials/_header %>
+</header>
+  <h2>List of pages<h2>
+  <ul>
+    <% for(let shortForm in urls){ %>
+      <li><%= shortForm %> - <%= urls[shortForm] %></li>
+    <% } %>
+  </ul>
+<a href='#''>Link for shortening a new URL</a>
+</body>
+</html>
