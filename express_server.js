@@ -33,9 +33,14 @@ app.get("/u/:shortURL", (req, res) => {
   res.redirect(longURL);
 });
 
-app.get("/", (req, res) => {
+app.get("/urls", (req, res) => {
   let templateVars = { urls: urlDatabase };
   res.render("urls_index", templateVars);
+});
+
+app.get("/", (req, res) => {
+  let templateVars = { urls: urlDatabase };
+  res.redirect("/urls");
 });
 
 app.get("/urls/:id", (req, res) => {
@@ -47,6 +52,15 @@ app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
+app.post("/urls/:shortForm/delete", (req, res) => {
+  delete urlDatabase[req.params.shortForm];
+  res.redirect("/urls");
+});
+
+app.post("/urls/:shortForm/update", (req, res) => {
+  urlDatabase[req.params.shortForm] = req.body.newLongURL;
+  res.redirect("/");
+});
 
 function generateRandomString() {
   let text = "";

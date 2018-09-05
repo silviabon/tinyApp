@@ -7,12 +7,15 @@
   <header>
     <% include ./partials/_header %>
 </header>
-  <h2>List of pages<h2>
+  <h3>List of pages<h3>
   <ul>
     <% for(let shortForm in urls){ %>
-      <li><%= shortForm %> - <%= urls[shortForm] %></li>
+      <li><%= shortForm %> - <%= urls[shortForm] %>
+        <a href= '/urls/<%= shortForm %>'>Edit</a>
+        <form method="POST" action="/urls/<%= shortForm %>/delete"> <input type="submit" value="Delete"> </form>
+      </li>
     <% } %>
   </ul>
-<a href='#''>Link for shortening a new URL</a>
+<a href='/urls/new''>Link for shortening a new URL</a>
 </body>
 </html>
