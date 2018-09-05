@@ -23,6 +23,10 @@ app.get("/urls/new", (req, res) => {
 app.post("/urls", (req, res) => {
   console.log(req.body);  // debug statement to see POST parameters
   res.send("Ok");         // Respond with 'Ok' (we will replace this)
+  newShortURL = generateRandomString();
+  console.log(newShortURL);
+  urlDatabase[newShortURL] = req.body["longURL"];
+  console.log(urlDatabase);
 });
 
 app.get("/", (req, res) => {
@@ -49,5 +53,4 @@ function generateRandomString() {
 
   return text;
 }
-
 
