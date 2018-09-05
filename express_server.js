@@ -21,12 +21,16 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
-  console.log(req.body);  // debug statement to see POST parameters
-  res.send("Ok");         // Respond with 'Ok' (we will replace this)
   newShortURL = generateRandomString();
-  console.log(newShortURL);
   urlDatabase[newShortURL] = req.body["longURL"];
-  console.log(urlDatabase);
+  let templateVars = { shortURL: newShortURL, longURL: urlDatabase[newShortURL]};
+  //res.send(res.render("urls_show", templateVars));
+  res.redirect("/urls/" + newShortURL);
+});
+
+app.get("/u/:shortURL", (req, res) => {
+   let longURL = urlDatabase[req.params.shortURL];
+  res.redirect(longURL);
 });
 
 app.get("/", (req, res) => {
