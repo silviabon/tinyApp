@@ -13,13 +13,26 @@ var urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+const users = {
+  "userRandomID": {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: "purple-monkey-dinosaur"
+  },
+ "user2RandomID": {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher-funk"
+  }
+};
+
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
 
 app.get("/urls/new", (req, res) => {
-  let templateVars = { username: req.cookies["username"]};
+  let templateVars = { user: users[req.cookies["user_id"]]};
   res.render("urls_new", templateVars);
 });
 
@@ -30,13 +43,12 @@ app.post("/urls", (req, res) => {
 });
 
 app.get("/u/:shortURL", (req, res) => {
-   let templateVars = { username: req.cookies["username"]};
    let longURL = urlDatabase[req.params.shortURL];
   res.redirect(longURL);
 });
 
 app.get("/urls", (req, res) => {
-  let templateVars = { username: req.cookies["username"], urls: urlDatabase };
+  let templateVars = { user: users[req.cookies["user_id"]], urls: urlDatabase };
   res.render("urls_index", templateVars);
 });
 
@@ -45,7 +57,7 @@ app.get("/", (req, res) => {
 });
 
 app.get("/urls/:id", (req, res) => {
-  let templateVars = { username: req.cookies["username"], shortURL: req.params.id, longURL: urlDatabase[req.params.id]};
+  let templateVars = { user: users[req.cookies["user_id"]], shortURL: req.params.id, longURL: urlDatabase[req.params.id]};
   res.render("urls_show", templateVars);
 });
 
@@ -63,15 +75,62 @@ app.post("/urls/:shortForm/update", (req, res) => {
   res.redirect("/urls");
 });
 
+app.get("/login", (req, res) => {
+  let templateVars = { user: users[req.cookies["user_id"]]};
+  res.render("login", templateVars);
+});
+
 app.post("/login", (req, res) => {
-  res.cookie('username', req.body.username);
-  res.redirect("/urls");
+ if(req.body.email === "" || req.body.password === ""){
+    res.status(400).send("Error: Email and password cannot be empty.");
+  }else{
+      var valid = false;
+    for(var user in users){
+      if(users[user].email === req.body.email){
+        if(users[user].password === req.body.password){
+           valid = true;
+           res.cookie('user_id', users[user].id);
+            res.redirect("/urls");
+        }
+      }
+    }
+    if(!valid){
+      res.status(400).send("Invalid Credentials");
+    }
+  }
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie('username');
+  res.clearCookie('user_id');
   res.redirect("/urls");
 });
+
+app.get("/register", (req, res) => {
+  let templateVars = { user: users[req.cookies["user_id"]]};
+  res.render("register", templateVars);
+});
+
+app.post("/register", (req, res) => {
+  if(req.body.email === "" || req.body.password === ""){
+    res.status(400).send("Error: Email and password cannot be empty.");
+  }else{
+      var ended = false;
+    for(var user in users){
+      if(users[user].email === req.body.email){
+        ended = true;
+         res.status(400).send("Error: Email already registered.");
+      }
+    }
+  }
+  if(!ended){
+  const randomID = generateRandomString();
+  users[randomID] = { id: randomID, email: req.body.email, password: req.body.password}
+  res.cookie('user_id', randomID);
+  res.redirect("/urls");
+}
+});
+
+
 
 function generateRandomString() {
   let text = "";
