@@ -6,11 +6,12 @@ const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({extended: true}));
 var cookieParser = require('cookie-parser');
 app.use(cookieParser());
+const bcrypt = require('bcrypt');
 
 
-var urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+const urlDatabase = {
+  "b2xVn2": {longURL: "http://www.lighthouselabs.ca", userID: "userRandomID"},
+  "9sm5xK": {longURL: "http://www.google.com", userID: "userRandomID"}
 };
 
 const users = {
@@ -28,28 +29,38 @@ const users = {
 
 
 app.listen(PORT, () => {
-  console.log(`Example app listening on port ${PORT}!`);
+  console.log(`Tiny app listening on port ${PORT}!`);
 });
 
 app.get("/urls/new", (req, res) => {
-  let templateVars = { user: users[req.cookies["user_id"]]};
-  res.render("urls_new", templateVars);
-});
-
-app.post("/urls", (req, res) => {
-  newShortURL = generateRandomString();
-  urlDatabase[newShortURL] = req.body["longURL"];
-  res.redirect("/urls/" + newShortURL);
+  if(req.cookies["user_id"] === undefined){
+    res.redirect("/login");
+  }else{
+    let templateVars = { user: users[req.cookies["user_id"]]};
+    res.render("urls_new", templateVars);
+  }
 });
 
 app.get("/u/:shortURL", (req, res) => {
-   let longURL = urlDatabase[req.params.shortURL];
+   let longURL = urlDatabase[req.params.shortURL].longURL;
   res.redirect(longURL);
 });
 
 app.get("/urls", (req, res) => {
-  let templateVars = { user: users[req.cookies["user_id"]], urls: urlDatabase };
-  res.render("urls_index", templateVars);
+  if(req.cookies["user_id"] === undefined){
+    filteredUrlDatabase = {};
+    let templateVars = { user: users[req.cookies["user_id"]], urls: filteredUrlDatabase };
+    res.render("urls_index", templateVars);
+  }else{
+    let filteredUrlDatabase = {};
+    for(var url in urlDatabase){
+      if(urlDatabase[url].userID === req.cookies["user_id"]){
+        filteredUrlDatabase[url] = urlDatabase[url];
+      }
+    }
+    let templateVars = { user: users[req.cookies["user_id"]], urls: filteredUrlDatabase };
+    res.render("urls_index", templateVars);
+  }
 });
 
 app.get("/", (req, res) => {
@@ -57,28 +68,55 @@ app.get("/", (req, res) => {
 });
 
 app.get("/urls/:id", (req, res) => {
-  let templateVars = { user: users[req.cookies["user_id"]], shortURL: req.params.id, longURL: urlDatabase[req.params.id]};
-  res.render("urls_show", templateVars);
+  if(req.cookies["user_id"] === undefined){
+    res.status(403).send("Access denied. Please login.");
+  } else if(req.cookies["user_id"] === urlDatabase[req.params.id].userID){
+    let templateVars = { user: users[req.cookies["user_id"]], shortURL: req.params.id, longURL: urlDatabase[req.params.id].longURL};
+    res.render("urls_show", templateVars);
+  }else{
+    res.status(403).send("Access denied. You can only access URLs you created.");
+  }
 });
 
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
-app.post("/urls/:shortForm/delete", (req, res) => {
-  delete urlDatabase[req.params.shortForm];
-  res.redirect("/urls");
-});
-
-app.post("/urls/:shortForm/update", (req, res) => {
-  urlDatabase[req.params.shortForm] = req.body.newLongURL;
-  res.redirect("/urls");
-});
-
 app.get("/login", (req, res) => {
   let templateVars = { user: users[req.cookies["user_id"]]};
   res.render("login", templateVars);
 });
+
+
+app.get("/register", (req, res) => {
+  let templateVars = { user: users[req.cookies["user_id"]]};
+  res.render("register", templateVars);
+});
+
+app.post("/urls", (req, res) => {
+  newShortURL = generateRandomString();
+  urlDatabase[newShortURL] = {longURL: req.body["longURL"], userID: req.cookies["user_id"]};
+  res.redirect("/urls/" + newShortURL);
+});
+
+app.post("/urls/:shortForm/delete", (req, res) => {
+  if(req.cookies["user_id"] === urlDatabase[req.params.shortForm].userID){
+    delete urlDatabase[req.params.shortForm];
+      res.redirect("/urls");
+  }else{
+    res.status(400).send("Error: You can only delete URLs you created.");
+  }
+});
+
+app.post("/urls/:shortForm/update", (req, res) => {
+  if(req.cookies["user_id"] === urlDatabase[req.params.shortForm].userID){
+  urlDatabase[req.params.shortForm] = {longURL: req.body.newLongURL, userID: req.cookies["user_id"]};
+  res.redirect("/urls");
+}else{
+    res.status(400).send("Error: You can only update URLs you created.");
+  }
+});
+
 
 app.post("/login", (req, res) => {
  if(req.body.email === "" || req.body.password === ""){
@@ -87,15 +125,14 @@ app.post("/login", (req, res) => {
       var valid = false;
     for(var user in users){
       if(users[user].email === req.body.email){
-        if(users[user].password === req.body.password){
-           valid = true;
-           res.cookie('user_id', users[user].id);
-            res.redirect("/urls");
+        valid = bcrypt.compareSync(req.body.password, users[user].password);
+         if(valid){
+          res.cookie('user_id', users[user].id);
+          res.redirect("/urls");
+         }else{
+          res.status(400).send("Invalid Credentials");
         }
       }
-    }
-    if(!valid){
-      res.status(400).send("Invalid Credentials");
     }
   }
 });
@@ -105,10 +142,6 @@ app.post("/logout", (req, res) => {
   res.redirect("/urls");
 });
 
-app.get("/register", (req, res) => {
-  let templateVars = { user: users[req.cookies["user_id"]]};
-  res.render("register", templateVars);
-});
 
 app.post("/register", (req, res) => {
   if(req.body.email === "" || req.body.password === ""){
@@ -124,7 +157,8 @@ app.post("/register", (req, res) => {
   }
   if(!ended){
   const randomID = generateRandomString();
-  users[randomID] = { id: randomID, email: req.body.email, password: req.body.password}
+  const hashedPassword = bcrypt.hashSync(req.body.password, 10);
+  users[randomID] = { id: randomID, email: req.body.email, password: hashedPassword}
   res.cookie('user_id', randomID);
   res.redirect("/urls");
 }

@@ -10,12 +10,15 @@
   <h3>List of pages<h3>
   <ul>
     <% for(let shortForm in urls){ %>
-      <li><%= shortForm %> - <%= urls[shortForm] %>
+      <li><%= shortForm %> - <%= urls[shortForm].longURL %>
         <a href= '/urls/<%= shortForm %>'>Edit</a>
         <form method="POST" action="/urls/<%= shortForm %>/delete"> <input type="submit" value="Delete"> </form>
       </li>
     <% } %>
   </ul>
+  <% if(!user){ %>
+    <p>You need to be logged in to see the URL list! </p>
+    <% } %>
 <a href='/urls/new''>Link for shortening a new URL</a>
 </body>
 </html>
