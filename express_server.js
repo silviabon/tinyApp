@@ -4,10 +4,9 @@ var PORT = 8080; // default port 8080
 app.set("view engine", "ejs");
 const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({extended: true}));
-//var cookieParser = require('cookie-parser');
-//app.use(cookieParser());
 const bcrypt = require('bcrypt');
 var cookieSession = require('cookie-session');
+
 app.use(cookieSession({
   name: 'session',
   keys: ['key1', 'key2'],
@@ -48,7 +47,7 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/u/:shortURL", (req, res) => {
-   let longURL = urlDatabase[req.params.shortURL].longURL;
+  let longURL = urlDatabase[req.params.shortURL].longURL;
   res.redirect(longURL);
 });
 
@@ -56,7 +55,6 @@ app.get("/urls", (req, res) => {
   if(req.session.user_id === undefined){
     filteredUrlDatabase = {};
     let templateVars = { user: users[req.session.user_id], urls: filteredUrlDatabase };
-    //let templateVars = { urls: filteredUrlDatabase };
     res.render("urls_index", templateVars);
   }else{
     let filteredUrlDatabase = {};
@@ -85,9 +83,6 @@ app.get("/urls/:id", (req, res) => {
   }
 });
 
-app.get("/urls.json", (req, res) => {
-  res.json(urlDatabase);
-});
 
 app.get("/login", (req, res) => {
   let templateVars = { user: users[req.session.user_id]};
@@ -109,7 +104,7 @@ app.post("/urls", (req, res) => {
 app.post("/urls/:shortForm/delete", (req, res) => {
   if(req.session.user_id === urlDatabase[req.params.shortForm].userID){
     delete urlDatabase[req.params.shortForm];
-      res.redirect("/urls");
+    res.redirect("/urls");
   }else{
     res.status(400).send("Error: You can only delete URLs you created.");
   }
@@ -129,21 +124,21 @@ app.post("/login", (req, res) => {
  if(req.body.email === "" || req.body.password === ""){
     res.status(400).send("Error: Email and password cannot be empty.");
   }else{
-      var valid = false;
+    var valid = false;
     for(var user in users){
       if(users[user].email === req.body.email){
         valid = bcrypt.compareSync(req.body.password, users[user].password);
-         if(valid){
-          //res.cookie('user_id', users[user].id);
+        if(valid){
           req.session.user_id = users[user].id;
           res.redirect("/urls");
-         }else{
+        }else{
           res.status(400).send("Invalid Credentials");
         }
       }
     }
   }
 });
+
 
 app.post("/logout", (req, res) => {
   req.session = null;
@@ -159,18 +154,17 @@ app.post("/register", (req, res) => {
     for(var user in users){
       if(users[user].email === req.body.email){
         ended = true;
-         res.status(400).send("Error: Email already registered.");
+        res.status(400).send("Error: Email already registered.");
       }
     }
   }
   if(!ended){
-  const randomID = generateRandomString();
-  const hashedPassword = bcrypt.hashSync(req.body.password, 10);
-  users[randomID] = { id: randomID, email: req.body.email, password: hashedPassword}
-  //res.cookie('user_id', randomID);
-  req.session.user_id = randomID;
-  res.redirect("/urls");
-}
+    const randomID = generateRandomString();
+    const hashedPassword = bcrypt.hashSync(req.body.password, 10);
+    users[randomID] = { id: randomID, email: req.body.email, password: hashedPassword}
+    req.session.user_id = randomID;
+    res.redirect("/urls");
+  }
 });
 
 
@@ -178,7 +172,6 @@ app.post("/register", (req, res) => {
 function generateRandomString() {
   let text = "";
   const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
   for (let i = 0; i < 6; i++){
     text += possible.charAt(Math.floor(Math.random() * possible.length));
   }
